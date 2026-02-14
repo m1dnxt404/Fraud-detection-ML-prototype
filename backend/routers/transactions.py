@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from ..data.generator import generate_transactions
 from ..ml.model import predict_risk_scores
@@ -9,11 +9,11 @@ from ..schemas import Transaction, TransactionsResponse
 router = APIRouter(prefix="/api")
 
 
-@lru_cache(maxsize=1)
-def _get_dataset() -> tuple[list[dict], list[float], list[bool]]:
-    """Generate and score transactions once, cache for the server session."""
+@lru_cache(maxsize=2)
+def _get_dataset(model_name: str = "xgboost") -> tuple[list[dict], list[float], list[bool]]:
+    """Generate and score transactions once per model, cache for the server session."""
     df = generate_transactions(count=500, seed=42)
-    scores = predict_risk_scores(df)
+    scores = predict_risk_scores(df, model_name=model_name)
 
     txns = []
     for _, row in df.iterrows():
@@ -38,9 +38,9 @@ def _get_dataset() -> tuple[list[dict], list[float], list[bool]]:
 
 
 @router.get("/transactions", response_model=TransactionsResponse)
-def get_transactions():
-    """Return all cached transactions with XGBoost risk scores."""
-    txns, _, _ = _get_dataset()
+def get_transactions(model: str = Query("xgboost", pattern="^(xgboost|tensorflow)$")):
+    """Return all cached transactions with risk scores from the selected model."""
+    txns, _, _ = _get_dataset(model)
     total_fraud = sum(1 for t in txns if t["is_fraud"])
     return TransactionsResponse(
         transactions=[Transaction(**t) for t in txns],

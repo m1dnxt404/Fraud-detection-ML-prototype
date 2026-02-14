@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { palette } from "../constants";
 import type { Transaction } from "../types";
 import { Card, Badge, type BadgeColor } from "./ui";
 

@@ -1,3 +1,5 @@
+export type ModelType = "xgboost" | "tensorflow";
+
 export interface Transaction {
   id: string;
   amount: number;

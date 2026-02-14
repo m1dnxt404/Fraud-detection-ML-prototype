@@ -32,6 +32,7 @@ class TransactionsResponse(CamelModel):
 
 class EvaluateRequest(CamelModel):
     threshold: float
+    model: str = "xgboost"
 
 
 class EvaluateResponse(CamelModel):

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TAB_DEFINITIONS } from "../constants";
 import { useDashboardData } from "../hooks/useDashboardData";
-import { Tabs } from "./ui";
+import { Tabs, ModelSelector } from "./ui";
 import OverviewTab from "./OverviewTab";
 import ModelTab from "./ModelTab";
 import TransactionsTab from "./TransactionsTab";
@@ -54,7 +54,14 @@ export default function FraudDetectionDashboard() {
             base rate)
           </p>
         </div>
-        <Tabs tabs={TAB_DEFINITIONS} active={activeTab} onChange={setActiveTab} />
+        <div className="flex items-center gap-4">
+          <ModelSelector
+            active={data.activeModel}
+            onChange={data.setActiveModel}
+            disabled={data.loading}
+          />
+          <Tabs tabs={TAB_DEFINITIONS} active={activeTab} onChange={setActiveTab} />
+        </div>
       </div>
 
       <div className="px-10 py-6 pb-10">

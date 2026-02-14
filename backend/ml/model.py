@@ -57,8 +57,13 @@ def load_model() -> xgb.XGBClassifier:
     return model
 
 
-def predict_risk_scores(df: pd.DataFrame) -> list[float]:
-    """Return fraud probability for each transaction."""
+def predict_risk_scores(
+    df: pd.DataFrame, model_name: str = "xgboost"
+) -> list[float]:
+    """Return fraud probability for each transaction using the specified model."""
+    if model_name == "tensorflow":
+        from .tf_model import predict_tf_scores
+        return predict_tf_scores(df)
     model = load_model()
     X = extract_features(df)
     probs = model.predict_proba(X)[:, 1]
@@ -116,8 +121,17 @@ def compute_roc_curve(
     return points
 
 
-def get_feature_importance() -> list[dict]:
-    """Return feature importance from XGBoost with human-readable names."""
+def get_feature_importance(
+    model_name: str = "xgboost",
+    df: pd.DataFrame | None = None,
+    y_true: np.ndarray | None = None,
+) -> list[dict]:
+    """Return feature importance using the specified model."""
+    if model_name == "tensorflow":
+        from .tf_model import get_tf_feature_importance
+        if df is None or y_true is None:
+            raise ValueError("df and y_true are required for TensorFlow feature importance")
+        return get_tf_feature_importance(df, y_true)
     model = load_model()
     importances = model.feature_importances_
     result = [

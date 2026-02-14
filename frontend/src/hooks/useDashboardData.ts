@@ -15,6 +15,7 @@ import type {
   HourlyDataPoint,
   AmountBin,
   ScatterPoint,
+  ModelType,
 } from "../types";
 
 const EMPTY_METRICS: ModelMetrics = {
@@ -27,6 +28,8 @@ export interface DashboardData {
   totalFraud: number;
   threshold: number;
   setThreshold: (t: number) => void;
+  activeModel: ModelType;
+  setActiveModel: (m: ModelType) => void;
   model: ModelMetrics;
   rocCurve: ROCPoint[];
   featureImportance: FeatureImportance[];
@@ -43,6 +46,7 @@ export function useDashboardData(): DashboardData {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalFraud, setTotalFraud] = useState(0);
   const [threshold, setThresholdRaw] = useState(0.55);
+  const [activeModel, setActiveModelRaw] = useState<ModelType>("xgboost");
   const [model, setModel] = useState<ModelMetrics>(EMPTY_METRICS);
   const [rocCurve, setRocCurve] = useState<ROCPoint[]>([]);
   const [featureImportance, setFeatureImportance] = useState<FeatureImportance[]>([]);
@@ -50,36 +54,50 @@ export function useDashboardData(): DashboardData {
   const [error, setError] = useState<string | null>(null);
 
   // Debounce timer for threshold slider
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Initial data load: transactions, ROC, features, initial evaluation (parallel)
-  useEffect(() => {
+  // Fetch all data for a given model
+  const fetchAllData = useCallback((m: ModelType, t: number) => {
     setLoading(true);
+    setError(null);
     Promise.all([
-      fetchTransactions(),
-      fetchROCCurve(),
-      fetchFeatureImportance(),
-      evaluateModel(0.55),
+      fetchTransactions(m),
+      fetchROCCurve(m),
+      fetchFeatureImportance(m),
+      evaluateModel(t, m),
     ])
-      .then(([txRes, roc, features, initialModel]) => {
+      .then(([txRes, roc, features, metrics]) => {
         setTransactions(txRes.transactions);
         setTotalFraud(txRes.totalFraud);
         setRocCurve(roc);
         setFeatureImportance(features);
-        setModel(initialModel);
+        setModel(metrics);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Initial data load
+  useEffect(() => {
+    fetchAllData(activeModel, threshold);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Model switch — re-fetch everything
+  const setActiveModel = useCallback((m: ModelType) => {
+    setActiveModelRaw(m);
+    fetchAllData(m, threshold);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threshold, fetchAllData]);
 
   // Debounced threshold update
   const setThreshold = useCallback((t: number) => {
     setThresholdRaw(t);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      evaluateModel(t).then(setModel).catch((e) => setError(e.message));
+      evaluateModel(t, activeModel).then(setModel).catch((e) => setError(e.message));
     }, 150);
-  }, []);
+  }, [activeModel]);
 
   // Derived data — computed client-side from the transaction array
   const flaggedTxns = useMemo(
@@ -136,6 +154,8 @@ export function useDashboardData(): DashboardData {
     totalFraud,
     threshold,
     setThreshold,
+    activeModel,
+    setActiveModel,
     model,
     rocCurve,
     featureImportance,
