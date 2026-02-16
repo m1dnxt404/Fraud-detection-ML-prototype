@@ -8,6 +8,7 @@ import TransactionsTab from "./TransactionsTab";
 
 const OverviewTab = lazy(() => import("./OverviewTab"));
 const ModelTab = lazy(() => import("./ModelTab"));
+const ComparisonTab = lazy(() => import("./ComparisonTab"));
 
 export default function FraudDetectionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -115,6 +116,7 @@ export default function FraudDetectionDashboard() {
               rocCurve={data.rocCurve}
             />
           )}
+          {activeTab === "comparison" && <ComparisonTab />}
           {activeTab === "transactions" && (
             <TransactionsTab topRiskyTxns={data.topRiskyTxns} activeModel={data.activeModel} />
           )}

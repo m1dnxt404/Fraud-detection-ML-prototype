@@ -17,6 +17,7 @@ export const palette = {
 export const TAB_DEFINITIONS = [
   { key: "overview", label: "Overview" },
   { key: "model", label: "Model Performance" },
+  { key: "comparison", label: "Model Comparison" },
   { key: "transactions", label: "Transaction Log" },
 ] as const;
 
