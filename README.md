@@ -1,16 +1,16 @@
 # Fraud Detection ML Prototype
 
-A full-stack, ML-powered fraud detection system with real-time transaction scoring, an adjustable decision threshold, dual-model support (XGBoost + TensorFlow), SHAP explainability, and an interactive analytics dashboard.
+A full-stack, ML-powered fraud detection system with real-time transaction scoring, an adjustable decision threshold, dual-model support (XGBoost + TensorFlow), SHAP explainability, CSV/PDF export, and an interactive analytics dashboard.
 
 ## Tech Stack
 
-| Layer          | Technology                                           |
-| -------------- | ---------------------------------------------------- |
-| Frontend       | React 19, TypeScript, Vite, Tailwind CSS 4, Recharts |
-| Backend        | FastAPI, Python 3.12, Pydantic                       |
-| ML             | XGBoost, TensorFlow / Keras, scikit-learn            |
-| Explainability | SHAP (TreeExplainer, KernelExplainer)                |
-| Data           | pandas, NumPy, synthetic generator                   |
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, Recharts, jsPDF |
+| Backend | FastAPI, Python 3.12, Pydantic |
+| ML | XGBoost, TensorFlow / Keras, scikit-learn |
+| Explainability | SHAP (TreeExplainer, KernelExplainer) |
+| Data | pandas, NumPy, synthetic generator |
 
 ## Project Structure
 
@@ -44,9 +44,12 @@ A full-stack, ML-powered fraud detection system with real-time transaction scori
 │       ├── api/                 # Typed fetch client + endpoint functions
 │       ├── hooks/
 │       │   └── useDashboardData.ts  # Central data hook (API calls + derived state)
+│       ├── utils/
+│       │   ├── exportCsv.ts       # CSV export (flagged / all transactions)
+│       │   └── exportPdf.ts       # PDF report generation (dynamic import)
 │       ├── components/
 │       │   ├── ui/              # Card, Badge, MetricCard, Tabs, Tooltip,
-│       │   │                      ModelSelector, ShapWaterfall
+│       │   │                      ModelSelector, ShapWaterfall, ExportMenu
 │       │   ├── OverviewTab.tsx  # Metrics + 4 charts
 │       │   ├── ModelTab.tsx     # Threshold slider, ROC, confusion matrix
 │       │   └── TransactionsTab.tsx  # Transaction table + detail + SHAP
@@ -85,6 +88,13 @@ A full-stack, ML-powered fraud detection system with real-time transaction scori
 - Risk factor badges: High Amount, Late Night, High Velocity, Far from Home
 - Color-coded risk scores (green / amber / red)
 - **SHAP waterfall chart** per transaction — shows how each feature pushed the prediction up (toward fraud) or down (toward legitimate) from the base value
+
+### Export
+
+- **Export Flagged (CSV)** — downloads only transactions above the current threshold
+- **Export All (CSV)** — downloads all 500 transactions
+- **Download PDF Report** — generates a landscape PDF with summary metrics, feature importance, confusion matrix stats, and a flagged transactions table
+- Export dropdown in the dashboard header, matching the existing UI style
 
 ## Getting Started
 
@@ -228,3 +238,5 @@ Vite Dev Server ──proxy──▶ FastAPI (port 8000)
 - **Debounced threshold** — slider changes are debounced (150ms) to avoid flooding the backend
 - **Tailwind v4 `@theme`** — custom `fd-*` color tokens defined in CSS, keeping the dark palette consistent
 - **Recharts inline palette** — Recharts requires raw hex values, so `constants.ts` keeps the palette object for chart props only
+- **Code splitting** — `React.lazy` for chart-heavy tabs (OverviewTab, ModelTab) and dynamic `import()` for jsPDF/autotable; Vite `manualChunks` splits recharts (391 KB) and jspdf (417 KB) into separate bundles, reducing initial JS payload from 1,038 KB to 215 KB (80%)
+- **Frontend-only export** — CSV and PDF are generated client-side from in-memory data (no backend round-trip); jsPDF loads on-demand only when the user clicks "Download PDF Report"
