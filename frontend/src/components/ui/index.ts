@@ -5,3 +5,4 @@ export { MetricCard } from "./MetricCard";
 export { Tabs } from "./Tabs";
 export { CustomTooltip } from "./CustomTooltip";
 export { ModelSelector } from "./ModelSelector";
+export { ShapWaterfall } from "./ShapWaterfall";

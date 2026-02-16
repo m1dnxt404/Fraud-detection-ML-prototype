@@ -87,7 +87,7 @@ export default function FraudDetectionDashboard() {
           />
         )}
         {activeTab === "transactions" && (
-          <TransactionsTab topRiskyTxns={data.topRiskyTxns} />
+          <TransactionsTab topRiskyTxns={data.topRiskyTxns} activeModel={data.activeModel} />
         )}
       </div>
     </div>

@@ -4,6 +4,7 @@ import type {
   ModelMetrics,
   ROCPoint,
   FeatureImportance,
+  TransactionShap,
   ModelType,
 } from "../types";
 
@@ -24,4 +25,8 @@ export function fetchROCCurve(model: ModelType = "xgboost"): Promise<ROCPoint[]>
 
 export function fetchFeatureImportance(model: ModelType = "xgboost"): Promise<FeatureImportance[]> {
   return apiFetch<FeatureImportance[]>(`/model/features?model=${model}`);
+}
+
+export function fetchTransactionShap(txnId: string, model: ModelType = "xgboost"): Promise<TransactionShap> {
+  return apiFetch<TransactionShap>(`/model/shap/${txnId}?model=${model}`);
 }

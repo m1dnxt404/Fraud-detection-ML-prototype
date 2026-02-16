@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from ..data.generator import generate_transactions
-from ..ml.model import (
-    evaluate_at_threshold,
-    compute_roc_curve,
-    get_feature_importance,
+from ..ml.model import evaluate_at_threshold, compute_roc_curve
+from ..ml.shap_explain import get_shap_global_importance, get_transaction_shap
+from ..schemas import (
+    EvaluateRequest, EvaluateResponse, ROCPoint,
+    FeatureImportanceItem, TransactionShapResponse, ShapFeatureItem,
 )
-from ..schemas import EvaluateRequest, EvaluateResponse, ROCPoint, FeatureImportanceItem
 from .transactions import _get_dataset
 
 router = APIRouter(prefix="/api/model")
@@ -30,11 +29,24 @@ def get_roc_curve(model: str = Query("xgboost", pattern="^(xgboost|tensorflow)$"
 
 @router.get("/features", response_model=list[FeatureImportanceItem])
 def get_features(model: str = Query("xgboost", pattern="^(xgboost|tensorflow)$")):
-    """Return feature importance from the specified model."""
-    if model == "tensorflow":
-        df = generate_transactions(count=500, seed=42)
-        y_true = df["is_fraud"].astype(int).values
-        items = get_feature_importance(model_name=model, df=df, y_true=y_true)
-    else:
-        items = get_feature_importance(model_name=model)
+    """Return SHAP-based global feature importance."""
+    items = get_shap_global_importance(model_name=model)
     return [FeatureImportanceItem(**item) for item in items]
+
+
+@router.get("/shap/{txn_id}", response_model=TransactionShapResponse)
+def get_txn_shap(
+    txn_id: str,
+    model: str = Query("xgboost", pattern="^(xgboost|tensorflow)$"),
+):
+    """Return SHAP explanation for a single transaction."""
+    txns, _, _ = _get_dataset(model)
+    index = next((i for i, t in enumerate(txns) if t["id"] == txn_id), None)
+    if index is None:
+        raise HTTPException(status_code=404, detail=f"Transaction {txn_id} not found")
+    result = get_transaction_shap(model_name=model, txn_index=index)
+    return TransactionShapResponse(
+        base_value=result["base_value"],
+        output_value=result["output_value"],
+        features=[ShapFeatureItem(**f) for f in result["features"]],
+    )

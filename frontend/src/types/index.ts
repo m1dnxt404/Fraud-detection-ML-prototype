@@ -63,3 +63,15 @@ export interface ScatterPoint {
   risk: number;
   fraud: number;
 }
+
+export interface ShapFeature {
+  feature: string;
+  rawValue: number;
+  shapValue: number;
+}
+
+export interface TransactionShap {
+  baseValue: number;
+  outputValue: number;
+  features: ShapFeature[];
+}

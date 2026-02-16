@@ -58,3 +58,15 @@ class ROCPoint(CamelModel):
 class FeatureImportanceItem(CamelModel):
     feature: str
     importance: float
+
+
+class ShapFeatureItem(CamelModel):
+    feature: str
+    raw_value: float
+    shap_value: float
+
+
+class TransactionShapResponse(CamelModel):
+    base_value: float
+    output_value: float
+    features: list[ShapFeatureItem]

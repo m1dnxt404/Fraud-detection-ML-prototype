@@ -1,6 +1,7 @@
-import { useState } from "react";
-import type { Transaction } from "../types";
-import { Card, Badge, type BadgeColor } from "./ui";
+import { useState, useEffect } from "react";
+import type { Transaction, TransactionShap, ModelType } from "../types";
+import { fetchTransactionShap } from "../api/endpoints";
+import { Card, Badge, ShapWaterfall, type BadgeColor } from "./ui";
 
 const TABLE_HEADERS = [
   "ID", "Amount", "Merchant", "City", "Hour",
@@ -79,12 +80,31 @@ function TransactionDetail({ txn }: { txn: Transaction }) {
   );
 }
 
+interface TransactionsTabProps {
+  topRiskyTxns: Transaction[];
+  activeModel: ModelType;
+}
+
 export default function TransactionsTab({
   topRiskyTxns,
-}: {
-  topRiskyTxns: Transaction[];
-}) {
+  activeModel,
+}: TransactionsTabProps) {
   const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
+  const [shapData, setShapData] = useState<TransactionShap | null>(null);
+  const [shapLoading, setShapLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedTxn) {
+      setShapData(null);
+      return;
+    }
+    setShapLoading(true);
+    setShapData(null);
+    fetchTransactionShap(selectedTxn.id, activeModel)
+      .then(setShapData)
+      .catch(() => setShapData(null))
+      .finally(() => setShapLoading(false));
+  }, [selectedTxn?.id, activeModel]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -139,6 +159,26 @@ export default function TransactionsTab({
       </Card>
 
       {selectedTxn && <TransactionDetail txn={selectedTxn} />}
+
+      {selectedTxn && (
+        <Card>
+          <div className="text-sm font-semibold mb-3">SHAP Explanation</div>
+          <p className="text-fd-text-dim text-xs mb-4">
+            How each feature contributed to this prediction (log-odds space)
+          </p>
+          {shapLoading ? (
+            <div className="text-fd-text-dim text-xs animate-pulse py-4">
+              Computing SHAP values...
+            </div>
+          ) : shapData ? (
+            <ShapWaterfall shap={shapData} />
+          ) : (
+            <div className="text-fd-text-dim text-xs py-4">
+              SHAP data unavailable
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
