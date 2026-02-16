@@ -1,6 +1,6 @@
 # Fraud Detection ML Prototype
 
-A full-stack, ML-powered fraud detection system with real-time transaction scoring, an adjustable decision threshold, dual-model support (XGBoost + TensorFlow), SHAP explainability, CSV/PDF export, and an interactive analytics dashboard.
+A full-stack, ML-powered fraud detection system with real-time transaction scoring, an adjustable decision threshold, dual-model support (XGBoost + TensorFlow), SHAP explainability, model comparison dashboard, CSV/PDF export, and an interactive analytics dashboard.
 
 ## Tech Stack
 
@@ -43,16 +43,18 @@ A full-stack, ML-powered fraud detection system with real-time transaction scori
 │   └── src/
 │       ├── api/                 # Typed fetch client + endpoint functions
 │       ├── hooks/
-│       │   └── useDashboardData.ts  # Central data hook (API calls + derived state)
+│       │   ├── useDashboardData.ts  # Central data hook (API calls + derived state)
+│       │   └── useComparisonData.ts # Dual-model data hook (comparison tab)
 │       ├── utils/
 │       │   ├── exportCsv.ts       # CSV export (flagged / all transactions)
 │       │   └── exportPdf.ts       # PDF report generation (dynamic import)
 │       ├── components/
 │       │   ├── ui/              # Card, Badge, MetricCard, Tabs, Tooltip,
 │       │   │                      ModelSelector, ShapWaterfall, ExportMenu
-│       │   ├── OverviewTab.tsx  # Metrics + 4 charts
-│       │   ├── ModelTab.tsx     # Threshold slider, ROC, confusion matrix
-│       │   └── TransactionsTab.tsx  # Transaction table + detail + SHAP
+│       │   ├── OverviewTab.tsx     # Metrics + 4 charts
+│       │   ├── ModelTab.tsx        # Threshold slider, ROC, confusion matrix
+│       │   ├── ComparisonTab.tsx   # Side-by-side model comparison
+│       │   └── TransactionsTab.tsx # Transaction table + detail + SHAP
 │       ├── types/               # TypeScript interfaces
 │       └── constants.ts         # Color palette, tab definitions
 │
@@ -80,6 +82,16 @@ A full-stack, ML-powered fraud detection system with real-time transaction scori
 - Live confusion matrix (TP, FP, FN, TN) updating in real-time
 - ROC curve with random classifier reference line
 - Precision-recall tradeoff across all thresholds
+
+### Model Comparison Tab
+
+- **Overlaid ROC curves** — XGBoost (red) vs TensorFlow (blue) on the same chart with random baseline
+- **Overlaid Precision-Recall curves** — solid lines for precision, dashed for recall, per model
+- **Metrics comparison table** — Precision, Recall, F1, Accuracy with percentage-point diff column highlighting the better model
+- **Side-by-side confusion matrices** — XGBoost and TensorFlow at the current threshold
+- **Side-by-side feature importance** — SHAP-based importance with model-colored bars
+- Self-contained data fetching — fetches both models in parallel via `Promise.all`, independent of the active model selector
+- Shared threshold slider updates both models simultaneously (debounced 150ms)
 
 ### Transaction Log Tab
 
@@ -240,3 +252,4 @@ Vite Dev Server ──proxy──▶ FastAPI (port 8000)
 - **Recharts inline palette** — Recharts requires raw hex values, so `constants.ts` keeps the palette object for chart props only
 - **Code splitting** — `React.lazy` for chart-heavy tabs (OverviewTab, ModelTab) and dynamic `import()` for jsPDF/autotable; Vite `manualChunks` splits recharts (391 KB) and jspdf (417 KB) into separate bundles, reducing initial JS payload from 1,038 KB to 215 KB (80%)
 - **Frontend-only export** — CSV and PDF are generated client-side from in-memory data (no backend round-trip); jsPDF loads on-demand only when the user clicks "Download PDF Report"
+- **Self-contained comparison hook** — `useComparisonData` manages dual-model state independently from `useDashboardData`, fetching both models in parallel without coupling to the main dashboard flow
