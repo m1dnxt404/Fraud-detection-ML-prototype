@@ -1,14 +1,30 @@
-import { useState } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
 import { TAB_DEFINITIONS } from "../constants";
 import { useDashboardData } from "../hooks/useDashboardData";
-import { Tabs, ModelSelector } from "./ui";
-import OverviewTab from "./OverviewTab";
-import ModelTab from "./ModelTab";
+import { Tabs, ModelSelector, ExportMenu } from "./ui";
+import { exportTransactionsCsv } from "../utils/exportCsv";
+import { exportDashboardPdf } from "../utils/exportPdf";
 import TransactionsTab from "./TransactionsTab";
+
+const OverviewTab = lazy(() => import("./OverviewTab"));
+const ModelTab = lazy(() => import("./ModelTab"));
 
 export default function FraudDetectionDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const data = useDashboardData();
+
+  const handleExportFlagged = useCallback(
+    () => exportTransactionsCsv(data.flaggedTxns, data.activeModel, "flagged"),
+    [data.flaggedTxns, data.activeModel],
+  );
+  const handleExportAll = useCallback(
+    () => exportTransactionsCsv(data.transactions, data.activeModel, "all"),
+    [data.transactions, data.activeModel],
+  );
+  const handleExportPdf = useCallback(
+    () => exportDashboardPdf(data),
+    [data],
+  );
 
   if (data.loading) {
     return (
@@ -60,35 +76,49 @@ export default function FraudDetectionDashboard() {
             onChange={data.setActiveModel}
             disabled={data.loading}
           />
+          <ExportMenu
+            onExportFlagged={handleExportFlagged}
+            onExportAll={handleExportAll}
+            onExportPdf={handleExportPdf}
+            disabled={data.loading}
+          />
           <Tabs tabs={TAB_DEFINITIONS} active={activeTab} onChange={setActiveTab} />
         </div>
       </div>
 
       <div className="px-10 py-6 pb-10">
-        {activeTab === "overview" && (
-          <OverviewTab
-            transactions={data.transactions}
-            flaggedTxns={data.flaggedTxns}
-            model={data.model}
-            threshold={data.threshold}
-            hourlyData={data.hourlyData}
-            amountDistribution={data.amountDistribution}
-            scatterData={data.scatterData}
-            featureImportance={data.featureImportance}
-          />
-        )}
-        {activeTab === "model" && (
-          <ModelTab
-            transactions={data.transactions}
-            model={data.model}
-            threshold={data.threshold}
-            setThreshold={data.setThreshold}
-            rocCurve={data.rocCurve}
-          />
-        )}
-        {activeTab === "transactions" && (
-          <TransactionsTab topRiskyTxns={data.topRiskyTxns} activeModel={data.activeModel} />
-        )}
+        <Suspense
+          fallback={
+            <div className="text-fd-text-muted text-sm animate-pulse py-8">
+              Loading tab...
+            </div>
+          }
+        >
+          {activeTab === "overview" && (
+            <OverviewTab
+              transactions={data.transactions}
+              flaggedTxns={data.flaggedTxns}
+              model={data.model}
+              threshold={data.threshold}
+              hourlyData={data.hourlyData}
+              amountDistribution={data.amountDistribution}
+              scatterData={data.scatterData}
+              featureImportance={data.featureImportance}
+            />
+          )}
+          {activeTab === "model" && (
+            <ModelTab
+              transactions={data.transactions}
+              model={data.model}
+              threshold={data.threshold}
+              setThreshold={data.setThreshold}
+              rocCurve={data.rocCurve}
+            />
+          )}
+          {activeTab === "transactions" && (
+            <TransactionsTab topRiskyTxns={data.topRiskyTxns} activeModel={data.activeModel} />
+          )}
+        </Suspense>
       </div>
     </div>
   );
